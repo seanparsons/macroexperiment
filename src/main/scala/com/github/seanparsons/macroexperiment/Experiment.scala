@@ -44,18 +44,23 @@ object Experiment {
     }
 
     def createLookup(value: context.Expr[_], path: Seq[context.Name]): context.Tree = {
-      path.reverse.foldLeft(Ident(value.tree.symbol): context.Tree)((working, contextName) => Select(working, newTermName(contextName.toString)))
+      path.foldLeft(Ident(value.tree.symbol): context.Tree){(working, contextName) =>
+        println("[%s]".format(contextName.decoded.trim))
+        Select(working, newTermName(contextName.decoded.trim))
+      }
     }
 
     def createComparison(path: Seq[context.Name]): context.Expr[Option[ValueDifference]] = {
       val leftExpr = context.Expr[LeftType](createLookup(left, path))
       val rightExpr = context.Expr[RightType](createLookup(right, path))
+      val pathExpr = context.Expr[List[String]](Apply(definitions.ListModule, path.map(name => Literal(Constant(name.decoded.trim))): _*))
       context.reify{
         if (leftExpr.splice == rightExpr.splice) None
-        else Some(ValueDifference(path.map(_.toString), leftExpr.splice, rightExpr.splice))
+        else Some(ValueDifference(pathExpr.splice, leftExpr.splice, rightExpr.splice))
       }
     }
 
+    println(left.actualTpe)
     if (left.actualTpe == right.actualTpe) {
       val paths = determinePaths(left.actualTpe)
       val pathComparisons = paths.map(path => createComparison(path))
