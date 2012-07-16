@@ -13,15 +13,15 @@ object Experiment {
     import context.universe._
 
     val comparableTypes: Set[context.Type] = Set(
-      implicitly[context.TypeTag[Double]].tpe,
-      implicitly[context.TypeTag[Long]].tpe,
-      implicitly[context.TypeTag[Int]].tpe,
-      implicitly[context.TypeTag[Char]].tpe,
-      implicitly[context.TypeTag[Short]].tpe,
-      implicitly[context.TypeTag[Byte]].tpe,
-      implicitly[context.TypeTag[Unit]].tpe,
-      implicitly[context.TypeTag[Boolean]].tpe,
-      implicitly[context.TypeTag[String]].tpe
+      context.typeOf[Double],
+      context.typeOf[Long],
+      context.typeOf[Int],
+      context.typeOf[Char],
+      context.typeOf[Short],
+      context.typeOf[Byte],
+      context.typeOf[Unit],
+      context.typeOf[Boolean],
+      context.typeOf[String]
     )
 
     def adtLikeDeclarations(symbol: context.Type): Seq[context.Symbol] = {
@@ -58,8 +58,9 @@ object Experiment {
 
     if (left.actualTpe == right.actualTpe) {
       val paths = determinePaths(left.actualTpe)
-      paths.foldLeft(context.reify(Seq[ValueDifference]())){(expr, path) =>
-        context.reify(expr.splice ++ createComparison(path).splice.toSeq)
+      val pathComparisons = paths.map(path => createComparison(path))
+      pathComparisons.foldLeft(context.reify(Seq[ValueDifference]())){(expr, pathComparison) =>
+        context.reify(expr.splice ++ pathComparison.splice.toSeq)
       }
     } else  {
       sys.error("Left type %s does not match right type %s.".format(left.actualTpe, right.actualTpe))
