@@ -34,18 +34,21 @@ object Experiment {
     def isComparableType(valueType: context.Type): Boolean = comparableTypes.contains(valueType)
 
     def determinePaths(valueType: context.Type, pathSoFar: Seq[context.Name] = Seq.empty): Seq[Seq[context.Name]] = {
-      adtLikeDeclarations(valueType)
-        .flatMap{
-          case abstractType if (!abstractType.typeSignature.isConcrete) => context.abort(context.enclosingPosition, "%s at %s is abstract.".format(abstractType, pathSoFar))
-          case primitive if(isComparableType(primitive.typeSignature)) => Seq(pathSoFar :+ primitive.name)
-          case possibleADT if(adtLikeDeclarations(possibleADT.typeSignature).size > 1) => determinePaths(possibleADT.typeSignature, pathSoFar :+ possibleADT.name)
-          case other => context.abort(context.enclosingPosition, "%s is not suitable for match for %s.".format(other, pathSoFar))
-        }
+      if(isComparableType(valueType)) {
+        Seq(pathSoFar)
+      } else {
+        adtLikeDeclarations(valueType)
+          .flatMap{
+            case abstractType if (!abstractType.typeSignature.isConcrete) => context.abort(context.enclosingPosition, "%s at %s is abstract.".format(abstractType, pathSoFar))
+            case primitive if(isComparableType(primitive.typeSignature)) => Seq(pathSoFar :+ primitive.name)
+            case possibleADT if(adtLikeDeclarations(possibleADT.typeSignature).size > 1) => determinePaths(possibleADT.typeSignature, pathSoFar :+ possibleADT.name)
+            case other => context.abort(context.enclosingPosition, "%s is not suitable for match for %s.".format(other, pathSoFar))
+          }
+      }
     }
 
     def createLookup(value: context.Expr[_], path: Seq[context.Name]): context.Tree = {
-      path.foldLeft(Ident(value.tree.symbol): context.Tree){(working, contextName) =>
-        println("[%s]".format(contextName.decoded.trim))
+      path.foldLeft(Ident(Option(value.tree.symbol).getOrElse(value.)): context.Tree){(working, contextName) =>
         Select(working, newTermName(contextName.decoded.trim))
       }
     }
@@ -60,15 +63,16 @@ object Experiment {
       }
     }
 
-    println(left.actualTpe)
-    if (left.actualTpe == right.actualTpe) {
-      val paths = determinePaths(left.actualTpe)
+    val widenedLeftType = left.actualTpe.widen
+    val widenedRightType = right.actualTpe.widen
+    if (widenedLeftType == widenedRightType) {
+      val paths = determinePaths(widenedLeftType)
       val pathComparisons = paths.map(path => createComparison(path))
       pathComparisons.foldLeft(context.reify(Seq[ValueDifference]())){(expr, pathComparison) =>
         context.reify(expr.splice ++ pathComparison.splice.toSeq)
       }
     } else  {
-      sys.error("Left type %s does not match right type %s.".format(left.actualTpe, right.actualTpe))
+      context.abort(context.enclosingPosition, "Left type %s does not match right type %s.".format(widenedLeftType, widenedRightType))
     }
   }
 }

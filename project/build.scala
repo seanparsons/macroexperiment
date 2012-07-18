@@ -14,7 +14,7 @@ object build extends Build {
     case class Test(first: Int, second: String)
     case class Test2(test: Test)
     val instance = new Test2(new Test(1, "Cake"))
-    //isDifferent(instance, instance)
+    val instance2 = Test2(Test(1,"Ca"))
     """
 	)
 
