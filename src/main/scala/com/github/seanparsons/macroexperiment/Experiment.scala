@@ -27,7 +27,7 @@ object Experiment {
     def adtLikeDeclarations(symbol: context.Type): Seq[context.Symbol] = {
       symbol
         .declarations
-        .filter(symbol => !symbol.isMethod)
+        .filter(sym => sym.isTerm && !sym.isMethod)
         .toSeq
     }
 
