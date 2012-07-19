@@ -14,6 +14,8 @@ object build extends Build {
     case class Test(first: Int, second: String)
     case class Test2(test: Test)
     val instance = new Test2(new Test(1, "Cake"))
+    val ru = scala.reflect.runtime.universe
+    //val test2Type = ru.typeOf[Test2]
     //isDifferent(instance, instance)
     """
 	)

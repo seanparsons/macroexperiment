@@ -26,7 +26,7 @@ object Experiment {
 
     def adtLikeDeclarations(symbol: context.Type): Seq[context.Symbol] = {
       symbol
-        .declarations
+        .members
         .filter(symbol => !symbol.isMethod)
         .toSeq
     }
@@ -45,15 +45,15 @@ object Experiment {
 
     def createLookup(value: context.Expr[_], path: Seq[context.Name]): context.Tree = {
       path.foldLeft(Ident(value.tree.symbol): context.Tree){(working, contextName) =>
-        println("[%s]".format(contextName.decoded.trim))
-        Select(working, newTermName(contextName.decoded.trim))
+        println("[%s]".format(contextName.decoded))
+        Select(working, newTermName(contextName.decoded))
       }
     }
 
     def createComparison(path: Seq[context.Name]): context.Expr[Option[ValueDifference]] = {
       val leftExpr = context.Expr[LeftType](createLookup(left, path))
       val rightExpr = context.Expr[RightType](createLookup(right, path))
-      val pathExpr = context.Expr[List[String]](Apply(definitions.ListModule, path.map(name => Literal(Constant(name.decoded.trim))): _*))
+      val pathExpr = context.Expr[List[String]](Apply(definitions.ListModule, path.map(name => Literal(Constant(name.decoded))): _*))
       context.reify{
         if (leftExpr.splice == rightExpr.splice) None
         else Some(ValueDifference(pathExpr.splice, leftExpr.splice, rightExpr.splice))
