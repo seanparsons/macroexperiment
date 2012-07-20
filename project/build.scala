@@ -11,12 +11,11 @@ object build extends Build {
 		libraryDependencies <+= (scalaVersion)(sv => "org.scala-lang" % "scala-compiler" % sv),
     initialCommands := """
     import com.github.seanparsons.macroexperiment.Experiment._
-    case class Test(first: Int, second: String)
-    case class Test2(test: Test)
-    val instance = new Test2(new Test(1, "Cake"))
-    val ru = scala.reflect.runtime.universe
-    //val test2Type = ru.typeOf[Test2]
-    //isDifferent(instance, instance)
+    case class DateOfBirth(date: Int, month: Int, year: Int)
+    case class Player(id: Int, name: String, dob: DateOfBirth)
+    case class Game(firstPlayer: Player, secondPlayer: Player)
+    val instance1 = Game(Player(23, "Sean", DateOfBirth(1, 9, 1980)), Player(20, "Sean", DateOfBirth(1, 9, 1980)))
+    val instance2 = Game(Player(22, "Dave", DateOfBirth(1, 9, 1980)), Player(20, "Sean", DateOfBirth(2, 9, 1981)))
     """
 	)
 
