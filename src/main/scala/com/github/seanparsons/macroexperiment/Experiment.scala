@@ -7,9 +7,13 @@ case class ValueDifference(path: Seq[String], left: Any, right: Any)
 
 object Experiment {
 
-  def isDifferent[LeftType, RightType](left: LeftType, right: RightType): Seq[ValueDifference] = macro isDifferentImpl[LeftType, RightType]
+  def isDifferent[LeftType, RightType](left: LeftType, right: RightType): Seq[ValueDifference] = 
+    macro isDifferentImpl[LeftType, RightType]
   
-  def isDifferentImpl[LeftType: context.TypeTag, RightType: context.TypeTag](context: Context)(left: context.Expr[LeftType], right: context.Expr[RightType]): context.Expr[Seq[ValueDifference]] = {
+  def isDifferentImpl[LeftType: context.TypeTag, RightType: context.TypeTag]
+                     (context: Context)
+                     (left: context.Expr[LeftType], 
+                     right: context.Expr[RightType]): context.Expr[Seq[ValueDifference]] = {
     import context.mirror._
     import context.universe._
 
@@ -43,16 +47,22 @@ object Experiment {
       comparableTypes.contains(valueType.resultType)
     }
 
-    def determinePaths(valueType: context.Type, pathSoFar: Seq[(String, context.Name)] = Seq.empty): Seq[Seq[(String, context.Name)]] = {
+    def determinePaths(valueType: context.Type, 
+                       pathSoFar: Seq[(String, context.Name)] = Seq.empty): Seq[Seq[(String, context.Name)]] = {
       if (comparableTypes.contains(valueType)) {
         Seq(pathSoFar)
       } else {
         adtLikeDeclarations(valueType)
           .flatMap{
-            case abstractType if (abstractType._2.typeSignature.typeSymbol.isAbstractType) => context.abort(context.enclosingPosition, "%s at %s is abstract.".format(abstractType, pathSoFar.map(_._1)))
-            case primitive if(isComparableType(primitive._2.typeSignature)) => Seq(pathSoFar :+ (primitive._1, primitive._2.name))
-            case possibleADT if(adtLikeDeclarations(possibleADT._2.typeSignature).size > 1) => determinePaths(possibleADT._2.typeSignature, pathSoFar :+ (possibleADT._1, possibleADT._2.name))
-            case other => context.abort(context.enclosingPosition, "%s is not suitable for match for %s.".format(other, pathSoFar.map(_._1)))
+            case abstractType if (abstractType._2.typeSignature.typeSymbol.isAbstractType) => 
+              context.abort(context.enclosingPosition, "%s at %s is abstract.".format(abstractType, pathSoFar.map(_._1)))
+            case primitive if(isComparableType(primitive._2.typeSignature)) => 
+              Seq(pathSoFar :+ (primitive._1, primitive._2.name))
+            case possibleADT if(adtLikeDeclarations(possibleADT._2.typeSignature).size > 1) => 
+              determinePaths(possibleADT._2.typeSignature, pathSoFar :+ (possibleADT._1, possibleADT._2.name))
+            case other => 
+              context.abort(context.enclosingPosition, 
+                            "%s is not suitable for match for %s.".format(other, pathSoFar.map(_._1)))
           }
       }
     }
@@ -70,7 +80,8 @@ object Experiment {
     def createComparison(path: Seq[(String, context.Name)]): context.Expr[Option[ValueDifference]] = {
       val leftExpr = context.Expr[LeftType](createLookup(left, path))
       val rightExpr = context.Expr[RightType](createLookup(right, path))
-      val pathExpr = context.Expr[List[String]](Apply(definitions.ListModule, path.map(pathPart => Literal(Constant(pathPart._1))): _*))
+      val pathExpr = context.Expr[List[String]](Apply(definitions.ListModule, 
+                                                path.map(pathPart => Literal(Constant(pathPart._1))): _*))
       context.reify{
         if (leftExpr.splice == rightExpr.splice) None
         else Some(ValueDifference(pathExpr.splice, leftExpr.splice, rightExpr.splice))
